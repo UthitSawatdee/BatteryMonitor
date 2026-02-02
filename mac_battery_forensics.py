@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Battery God Mode - Forensic Battery Monitoring for macOS
-=========================================================
+macOS Battery Forensics
+=======================
 A kernel-level battery monitoring solution that extracts raw hardware
 metrics using ioreg and pushes detailed reports to Notion.
 
@@ -146,28 +146,28 @@ def ensure_database_schema() -> bool:
         response = requests.patch(url, headers=headers, json=payload, timeout=30)
 
         if response.status_code == 200:
-            logger.info("✅ Database schema updated successfully")
+            logger.info("Database schema updated successfully")
             return True
         elif response.status_code == 403:
             logger.warning(
-                "⚠️ Could not update schema (403 Forbidden). "
+                "Could not update schema (403 Forbidden). "
                 "Integration may lack permissions. Continuing..."
             )
             return False
         else:
             logger.warning(
-                f"⚠️ Could not update schema ({response.status_code}): "
+                f"Could not update schema ({response.status_code}): "
                 f"{response.text}. Continuing..."
             )
             return False
 
     except requests.exceptions.RequestException as e:
-        logger.warning(f"⚠️ Schema update failed: {e}. Continuing...")
+        logger.warning(f"Schema update failed: {e}. Continuing...")
         return False
 
 
 # =============================================================================
-# Part 2: Forensic Data Extraction (The Secret Sauce)
+# Part 2: Forensic Data Extraction
 # =============================================================================
 
 
@@ -180,7 +180,7 @@ def get_battery_data_forensic() -> Optional[dict[str, Any]]:
         dict: Comprehensive battery metrics or None if extraction fails.
     """
     try:
-        logger.info("Executing ioreg command for forensic battery extraction...")
+        logger.info("Executing ioreg command for battery data extraction...")
 
         # Execute ioreg with XML output
         result = subprocess.run(
@@ -195,8 +195,7 @@ def get_battery_data_forensic() -> Optional[dict[str, Any]]:
 
         # Parse XML plist output
         plist_data = plistlib.loads(result.stdout)
-        logger.debug(f"Raw plist data: {plist_data}")
-
+        
         if not plist_data:
             logger.error("No battery data found in ioreg output")
             return None
@@ -211,13 +210,13 @@ def get_battery_data_forensic() -> Optional[dict[str, Any]]:
         device_name = battery.get("DeviceName", "Unknown")
         manufacturer = battery.get("Manufacturer", "Apple Inc.")
 
-        # Capacity (The Absolute Truth)
+        # Capacity
         apple_raw_max_capacity = battery.get("AppleRawMaxCapacity", 0)
         design_capacity = battery.get("DesignCapacity", 0)
         nominal_charge_capacity = battery.get("NominalChargeCapacity", 0)
 
         # Charge
-        current_capacity_pct = battery.get("CurrentCapacity", 0)  # Percentage
+        current_capacity_pct = battery.get("CurrentCapacity", 0)
         apple_raw_current_capacity = battery.get("AppleRawCurrentCapacity", 0)
 
         # Flow (mV and mA)
@@ -252,21 +251,21 @@ def get_battery_data_forensic() -> Optional[dict[str, Any]]:
 
         # === Calculations ===
 
-        # Watts (Power Draw/Charge): (Voltage * Amperage) / 1_000_000 for mV*mA to W
+        # Watts (Power Draw/Charge): (Voltage * Amperage) / 1_000_000
         voltage_v = voltage_mv / 1000.0 if voltage_mv else 0
         power_watts = (voltage_mv * abs(amperage_ma)) / 1_000_000 if voltage_mv and amperage_ma else 0
 
-        # True Wear Level: 100 - ((AppleRawMaxCapacity / DesignCapacity) * 100)
+        # True Wear Level
         wear_level = 0.0
         if design_capacity > 0:
             wear_level = 100.0 - ((apple_raw_max_capacity / design_capacity) * 100.0)
 
-        # Real Health Percentage (inverse of wear)
+        # Real Health Percentage
         real_health_pct = 0.0
         if design_capacity > 0:
             real_health_pct = (apple_raw_max_capacity / design_capacity) * 100.0
 
-        # Real Battery Percentage: (AppleRawCurrentCapacity / AppleRawMaxCapacity) * 100
+        # Real Battery Percentage
         real_percentage = 0.0
         if apple_raw_max_capacity > 0:
             real_percentage = (apple_raw_current_capacity / apple_raw_max_capacity) * 100.0
@@ -321,11 +320,11 @@ def get_battery_data_forensic() -> Optional[dict[str, Any]]:
             "timestamp": datetime.now().isoformat(),
         }
 
-        logger.info("✅ Forensic battery data extracted successfully")
+        logger.info("Forensic battery data extracted successfully")
         logger.info(f"   Serial: {serial}")
         logger.info(f"   Real Health: {real_health_pct:.1f}%")
         logger.info(f"   Cycle Count: {cycle_count}")
-        logger.info(f"   Temperature: {temperature_celsius:.1f}°C")
+        logger.info(f"   Temperature: {temperature_celsius:.1f}C")
         logger.info(f"   Power: {power_watts:.2f}W ({charging_status})")
 
         return battery_data
@@ -363,7 +362,7 @@ def build_page_children(data: dict[str, Any]) -> list[dict]:
         "object": "block",
         "type": "heading_2",
         "heading_2": {
-            "rich_text": [{"type": "text", "text": {"content": "🔋 Power Flow"}}],
+            "rich_text": [{"type": "text", "text": {"content": "Power Flow"}}],
         },
     })
 
@@ -389,7 +388,7 @@ def build_page_children(data: dict[str, Any]) -> list[dict]:
         "object": "block",
         "type": "heading_2",
         "heading_2": {
-            "rich_text": [{"type": "text", "text": {"content": "🩺 Health Diagnostics"}}],
+            "rich_text": [{"type": "text", "text": {"content": "Health Diagnostics"}}],
         },
     })
 
@@ -397,7 +396,7 @@ def build_page_children(data: dict[str, Any]) -> list[dict]:
         f"Real Health: {data['real_health_pct']:.1f}%",
         f"Wear Level: {data['wear_level_pct']:.1f}%",
         f"Cycle Count: {data['cycle_count']}",
-        f"Temperature: {data['temperature_celsius']}°C",
+        f"Temperature: {data['temperature_celsius']}C",
     ]
 
     for item in health_items:
@@ -414,7 +413,7 @@ def build_page_children(data: dict[str, Any]) -> list[dict]:
         "object": "block",
         "type": "heading_2",
         "heading_2": {
-            "rich_text": [{"type": "text", "text": {"content": "📊 Capacity Analysis"}}],
+            "rich_text": [{"type": "text", "text": {"content": "Capacity Analysis"}}],
         },
     })
 
@@ -440,7 +439,7 @@ def build_page_children(data: dict[str, Any]) -> list[dict]:
         "object": "block",
         "type": "heading_2",
         "heading_2": {
-            "rich_text": [{"type": "text", "text": {"content": "🔧 Device Information"}}],
+            "rich_text": [{"type": "text", "text": {"content": "Device Information"}}],
         },
     })
 
@@ -472,7 +471,7 @@ def build_page_children(data: dict[str, Any]) -> list[dict]:
         "object": "block",
         "type": "heading_3",
         "heading_3": {
-            "rich_text": [{"type": "text", "text": {"content": "📋 Raw Metrics (JSON)"}}],
+            "rich_text": [{"type": "text", "text": {"content": "Raw Metrics (JSON)"}}],
         },
     })
 
@@ -553,7 +552,7 @@ def push_to_notion(data: dict[str, Any]) -> bool:
                 },
                 # Numeric properties
                 "Real Health %": {
-                    "number": data["real_health_pct"] / 100.0,  # Notion percent format
+                    "number": data["real_health_pct"] / 100.0,
                 },
                 "Design Capacity (mAh)": {
                     "number": data["design_capacity_mah"],
@@ -594,34 +593,32 @@ def push_to_notion(data: dict[str, Any]) -> bool:
         response = requests.post(url, headers=headers, json=payload, timeout=30)
 
         if response.status_code == 200:
-            logger.info("✅ Successfully created forensic report in Notion!")
+            logger.info("Successfully created forensic report in Notion!")
             return True
         elif response.status_code == 401:
-            logger.error("❌ Unauthorized: Check your NOTION_API_KEY")
-            logger.error(f"Response: {response.text}")
+            logger.error("Unauthorized: Check your NOTION_API_KEY")
             return False
         elif response.status_code == 404:
-            logger.error("❌ Not found: Check your NOTION_DATABASE_ID")
-            logger.error(f"Response: {response.text}")
+            logger.error("Not found: Check your NOTION_DATABASE_ID")
             return False
         elif response.status_code >= 400:
-            logger.error(f"❌ API error ({response.status_code}): {response.text}")
+            logger.error(f"API error ({response.status_code}): {response.text}")
             return False
         else:
             logger.info(f"Request completed with status {response.status_code}")
             return True
 
     except requests.exceptions.Timeout:
-        logger.error("❌ Notion API request timed out")
+        logger.error("Notion API request timed out")
         return False
     except requests.exceptions.ConnectionError:
-        logger.error("❌ Failed to connect to Notion API. Check internet connection.")
+        logger.error("Failed to connect to Notion API. Check internet connection.")
         return False
     except requests.exceptions.RequestException as e:
-        logger.error(f"❌ Request error: {e}")
+        logger.error(f"Request error: {e}")
         return False
     except Exception as e:
-        logger.error(f"❌ Unexpected error pushing to Notion: {e}")
+        logger.error(f"Unexpected error pushing to Notion: {e}")
         return False
 
 
@@ -638,10 +635,10 @@ def main() -> int:
         int: Exit code (0 for success, 1 for failure)
     """
     logger.info("=" * 70)
-    logger.info("🔋 Battery God Mode - Forensic Monitoring System")
+    logger.info("macOS Battery Forensics - Monitoring System")
     logger.info("=" * 70)
 
-    # Step 0: Ensure database schema (non-blocking)
+    # Step 0: Ensure database schema
     ensure_database_schema()
 
     # Step 1: Extract forensic battery data
@@ -649,7 +646,7 @@ def main() -> int:
     battery_data = get_battery_data_forensic()
 
     if battery_data is None:
-        logger.error("❌ Failed to extract battery data. Exiting.")
+        logger.error("Failed to extract battery data. Exiting.")
         return 1
 
     # Step 2: Push data to Notion
@@ -657,11 +654,11 @@ def main() -> int:
     success = push_to_notion(battery_data)
 
     if not success:
-        logger.error("❌ Failed to push data to Notion. Exiting.")
+        logger.error("Failed to push data to Notion. Exiting.")
         return 1
 
     logger.info("=" * 70)
-    logger.info("🎉 Battery God Mode - Completed Successfully")
+    logger.info("macOS Battery Forensics - Completed Successfully")
     logger.info("=" * 70)
 
     return 0

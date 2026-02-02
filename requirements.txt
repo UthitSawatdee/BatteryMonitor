@@ -5,4 +5,4 @@
 requests>=2.28.0
 
 # Note: plistlib is part of Python standard library (no install needed)
-# Used by battery_god_mode.py for XML plist parsing
+# Used by mac_battery_forensics.py for XML plist parsing
