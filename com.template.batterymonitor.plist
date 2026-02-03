@@ -19,6 +19,7 @@
         <string>YOUR_DATABASE_ID</string>
     </dict>
 
+    <!-- Schedule: Run daily at 9:00 AM -->
     <key>StartCalendarInterval</key>
     <dict>
         <key>Hour</key>
@@ -31,5 +32,9 @@
     <string>/Users/YOUR_USER/.local/bin/battery_monitor.log</string>
     <key>StandardErrorPath</key>
     <string>/Users/YOUR_USER/.local/bin/battery_monitor_error.log</string>
+
+    <!-- Run immediately on login/boot -->
+    <key>RunAtLoad</key>
+    <true/>
 </dict>
 </plist>
